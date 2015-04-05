@@ -1,0 +1,10 @@
+key generate:
+========================================
+openssl genrsa -des3 -out server.key 2048
+openssl req -new -x509 -key server.key -out server.crt -days 1095
+cat server.key server.crt >server.pem
+
+openssl genrsa -des3 -out client.key 2048
+openssl req -new -x509 -key client.key -out client.crt -days 1095
+cat client.key client.crt >client.pem
+

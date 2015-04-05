@@ -1,0 +1,1 @@
+./blowfish_test dec 'brnDBpass.#@' t.xml

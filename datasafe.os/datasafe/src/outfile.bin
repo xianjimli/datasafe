@@ -1,0 +1,162 @@
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <strings.h>
+#include <string.h>
+#include <openssl/md5.h>
+#include <openssl/blowfish.h>
+#include "data_safe_common.h"
+
+#define ENC_KEY_SIZE 16
+
+int blowfish_init_key(BF_KEY* key, const char* passwd)
+{
+	char real_passwd[33] = {0};
+	char* md5 = MD5(passwd, strlen(passwd), NULL);
+	
+	digit_to_hex(md5, 16, real_passwd);
+	BF_set_key(key, strlen(real_passwd), real_passwd);
+
+   return 0;
+}
+
+int encrypt_buf(char *in, int len, const char* passwd)
+{ 
+	int i = 0;
+	BF_KEY key;
+	int size = (len >> 3) << 3;
+
+	blowfish_init_key(&key, passwd);
+	for (i = 0; i < size; i += 8)
+	{
+		BF_ecb_encrypt(in+i, in+i, &key, BF_ENCRYPT);
+	}
+	
+	return len;
+}
+
+int decrypt_buff(char *in, int len, const char* passwd)
+{
+	int i = 0;
+	BF_KEY key;
+	int size = (len >> 3) << 3;
+
+	blowfish_init_key(&key, passwd);
+	for (i = 0; i < size; i += 8)
+	{
+		BF_ecb_encrypt(in+i, in+i, &key, BF_DECRYPT);
+	}
+	
+	return len;
+}
+
+#ifdef BLOWFISH_TEST
+#include <assert.h>
+#define SIZE 10*1024+5
+#define BUFF_SIZE 4096
+
+void test(void)
+{
+	char in[SIZE+1] = {0};
+	char expected[SIZE+1] = {0};
+	memset(in, 'a', SIZE);
+	memset(expected, 'a', SIZE);
+
+	encrypt_buf(in, SIZE, "1234abcd");
+	assert(memcmp(in, expected, SIZE) != 0);
+
+	decrypt_buff(in, SIZE, "1234abcd");
+	assert(memcmp(in, expected, SIZE) == 0);
+
+	return;
+}
+
+int crypto_encrypt_file(const char* filename, const char* passwd, const char* outfilename)
+{
+	int ret = 0;
+	char buffer[BUFF_SIZE] = {0};
+	FILE* file = fopen(filename, "rb");
+	FILE* outfile = fopen(outfilename, "wb+");
+
+	if(file == NULL || outfile == NULL) goto out;
+
+	while((ret = fread(buffer, 1, BUFF_SIZE, file)) > 0)
+	{
+		encrypt_buf(buffer, ret, passwd);
+		fwrite(buffer, ret, 1, outfile);
+		memset(buffer, 0x00, BUFF_SIZE);
+	}
+out:
+
+	if(file != NULL)
+	{
+		fclose(file);
+	}
+
+	if(outfile != NULL)
+	{
+		fclose(outfile);
+	}
+
+	return 0;
+}
+
+int crypto_decrypt_file(const char* filename, const char* passwd, const char* outfilename)
+{
+	int ret = 0;
+	char buffer[BUFF_SIZE] = {0};
+	FILE* file = fopen(filename, "rb");
+	FILE* outfile = fopen(outfilename, "wb+");
+
+	if(file == NULL || outfile == NULL) goto out;
+
+	while((ret = fread(buffer, 1, BUFF_SIZE, file)) > 0)
+	{
+		decrypt_buff(buffer, ret, passwd);
+		fwrite(buffer, ret, 1, outfile);
+		memset(buffer, 0x00, BUFF_SIZE);
+	}
+out:
+
+	if(file != NULL)
+	{
+		fclose(file);
+	}
+
+	if(outfile != NULL)
+	{
+		fclose(outfile);
+	}
+
+	return 0;
+}
+int main(int argc, char* argv[])
+{
+	const char* action = NULL;
+	const char* passwd = NULL;
+	const char* filename = NULL;
+
+	if(argc < 4)
+	{
+		test();
+		printf("usage: %s dec|enc passwd file\n", argv[0]);
+
+		return 0;
+	}
+
+	action   = argv[1];
+	passwd   = argv[2];
+	filename = argv[3];
+
+	if(action[0] == 'e')
+	{
+		crypto_encrypt_file(filename, passwd, "outfile.bin");		
+	}
+	else
+	{
+		crypto_decrypt_file(filename, passwd, "outfile.bin");		
+	}
+
+	return 0;
+}
+#endif/*BLOWFISH_TEST*/

@@ -1,0 +1,8 @@
+Possible attacks:
+
+1.PRELOAD
+Solution: recompiple glibc and disable PRELOAD.
+
+2.Clipboard
+Solution: disable clipboard.
+

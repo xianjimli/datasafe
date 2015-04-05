@@ -1,0 +1,8 @@
+<data_safe_policy>
+<passwd value="12345678"/>
+<policy>/usr/bin/g++;fd61f1d57d1202cf1fe4792891f1f41b;1;0
+</policy>
+<mac_addrs>002421F1EF25</mac_addrs>
+<user name="admin" passwd="12345678"/>
+<user name="lixianjing" passwd=""/>
+</data_safe_policy>

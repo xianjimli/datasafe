@@ -1,0 +1,34 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]
+then
+	echo "Usage: bdiff filename"
+	echo "Usage: bdiff filename -rN"
+	exit
+fi
+
+FILENAME=$1
+TMPFILENAME=brndiff_temp_$FILENAME
+rm -f $TMPFILENAME brndiffout.c
+
+if [ $# -eq 1 ]
+then
+	cp .svn/text-base/$FILENAME.svn-base $TMPFILENAME
+fi
+
+if [ $# -eq 2 ]
+then
+	REVISION="$2"
+	SVN=`grep svn+ssh: .svn/entries |head -n 1`"/"$FILENAME
+	svn cat $REVISION $SVN >$TMPFILENAME
+fi
+
+chmod 660 $TMPFILENAME
+datasafe_tags set $TMPFILENAME
+brndiff $FILENAME $TMPFILENAME 
+rm -f $TMPFILENAME
+if [ -f brndiffout.c ]
+then
+	bim brndiffout.c
+fi
+
